@@ -10,7 +10,7 @@
   "sourceMap": "60:142:5:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;",
   "deployedSourceMap": "60:142:5:-:0;;;;;;;;",
   "source": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.0;\r\n\r\nlibrary myMath {\r\n    function abs(int number) internal pure returns (uint) {\r\n        return uint(number > 0 ? number : (-number));\r\n    }\r\n}\r\n",
-  "sourcePath": "D:\\projects\\FunixPricingChains\\contracts\\lib\\myMath.sol",
+  "sourcePath": "D:\\projects\\PricingChain\\contracts\\lib\\myMath.sol",
   "ast": {
     "absolutePath": "project:/contracts/lib/myMath.sol",
     "exportedSymbols": {
@@ -613,7 +613,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.3",
-  "updatedAt": "2022-07-17T16:28:26.201Z",
+  "updatedAt": "2022-07-17T18:46:33.163Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},
