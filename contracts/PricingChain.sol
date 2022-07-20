@@ -14,7 +14,7 @@ contract PricingChain is Ownable {
         uint256 id;
         string ipfsID;
         string name;
-        uint256 price;
+        uint256 price; // P
     }
 
     struct Session {
@@ -25,6 +25,7 @@ contract PricingChain is Ownable {
         mapping(address => uint256) participant_pricing;
         uint256 timeStarted;
         uint256 timeout;
+        uint256 proposedPrice;
     }
 
     event onProductAdded(
@@ -37,7 +38,12 @@ contract PricingChain is Ownable {
     event onStartedSession(uint256 id, State, Product p);
     event onClosedSession(uint256 id, State, Product p);
     event onGuessPrice(address participant, uint256 price, uint256 sessionID);
-    event onSetPrice(uint256 productID, uint256 price, uint256 sessionID);
+    event onSetPrice(
+        uint256 productID,
+        uint256 price,
+        uint256 sessionID,
+        uint256 proposedPrice
+    );
     // Số người tham gia tối đa
     uint8 private participantsLimit = 10;
 
@@ -168,6 +174,7 @@ contract PricingChain is Ownable {
         Session storage s = _sessions.push();
         s.productID = productID;
         s.state = State.CLOSE;
+        s.proposedPrice = 0;
         Product memory p;
         for (uint256 i = 0; i < _products.length; i++) {
             if (_products[i].id == productID) p = _products[i];
@@ -209,6 +216,7 @@ contract PricingChain is Ownable {
             string[] memory ipfsIDs,
             string[] memory names,
             uint256[] memory prices,
+            // uint256[] memory proposedPrices,
             State[] memory states,
             uint256[] memory timeStarteds,
             uint256[] memory timeouts
@@ -219,6 +227,7 @@ contract PricingChain is Ownable {
         string[] memory _ipfsIDs = new string[](_sessions.length);
         string[] memory _names = new string[](_sessions.length);
         uint256[] memory _prices = new uint256[](_sessions.length);
+        // uint256[] memory _proposedPrices = new uint256[](_sessions.length);
         State[] memory _states = new State[](_sessions.length);
         uint256[] memory _timeStarteds = new uint256[](_sessions.length);
         uint256[] memory _timeouts = new uint256[](_sessions.length);
@@ -228,6 +237,7 @@ contract PricingChain is Ownable {
             _ipfsIDs[i] = _products[_sessions[i].productID].ipfsID;
             _names[i] = _products[_sessions[i].productID].name;
             _prices[i] = _products[_sessions[i].productID].price;
+            // _proposedPrices[i] = _sessions[i].proposedPrice;
             _states[i] = _sessions[i].state;
             _timeStarteds[i] = _sessions[i].timeStarted;
             _timeouts[i] = _sessions[i].timeout;
@@ -238,6 +248,7 @@ contract PricingChain is Ownable {
             _ipfsIDs,
             _names,
             _prices,
+            // _proposedPrices,
             _states,
             _timeStarteds,
             _timeouts
@@ -254,6 +265,7 @@ contract PricingChain is Ownable {
             string memory ipfsID,
             string memory name,
             uint256 price,
+            uint256 proposedPrice,
             State state,
             address[] memory participants,
             uint256[] memory participant_pricings,
@@ -276,6 +288,7 @@ contract PricingChain is Ownable {
             _products[session.productID].ipfsID,
             _products[session.productID].name,
             _products[session.productID].price,
+            session.proposedPrice,
             session.state,
             session.participants,
             _participant_pricings,
@@ -298,7 +311,13 @@ contract PricingChain is Ownable {
         uint256 productID
     ) public onlyOwner sessionClosed(sessionID) productExist(productID) {
         _products[productID].price = price;
-        emit onSetPrice(productID, price, sessionID);
+        uint256 proposedPrice = calcProposedPrice(
+            sessionID,
+            _products[productID].price,
+            price
+        );
+        _sessions[sessionID].proposedPrice = proposedPrice;
+        emit onSetPrice(productID, price, sessionID, proposedPrice);
     }
 
     // kiểm tra vượt quá số người tham gia định giá 10
@@ -354,32 +373,50 @@ contract PricingChain is Ownable {
         emit onGuessPrice(msg.sender, price, sessionID);
     }
 
-    function calcLastPrice(uint256 sessionID)
-        public
-        onlyOwner
-        returns (int256)
-    {
-        uint256 P = 0;
-        int256 dnew = 0;
-        Session storage s = _sessions[sessionID];
-
-        uint256 sum_di = 0;
-        uint256 sum_pi = 0;
-
-        for (uint8 i = 0; i < s.participants.length; i++) {
-            address addr = s.participants[i];
-
-            uint256 di = (myMath.abs(
-                int256(P) - int256(s.participant_pricing[addr])
-            ) / P) * 100;
-            sum_di += di;
-            sum_pi += s.participant_pricing[addr] * (100 - di);
-        }
-
-        return dnew;
+    /*
+        P: The final price
+        p: The given price of the participant
+        n: number of all participants
+    */
+    function calc_d_new(uint256 P, uint256 p) public pure returns (uint256) {
+        uint256 d_new = (myMath.abs(int256(P - p)) / P) * 100;
+        return d_new;
     }
 
-    function test() public view returns (uint256) {
-        return block.timestamp;
+    function calc_d_i(
+        uint256 P_current,
+        uint256 P_new,
+        uint256 p,
+        uint256 n
+    ) public pure returns (uint256) {
+        uint256 d_current = calc_d_new(P_current, p);
+        uint256 d_new = calc_d_new(P_new, p);
+        uint256 d = ((d_current * n) + d_new) / (n + 1);
+        return d;
+    }
+
+    function calcProposedPrice(
+        uint256 sessionID,
+        uint256 P_current,
+        uint256 P_new
+    ) public view returns (uint256) {
+        Session storage s = _sessions[sessionID];
+        uint256 n = s.participants.length;
+        uint256 sum_d_i = 0;
+
+        // numerator, denominator in formular
+        uint256 sum_numerator = 0;
+        for (uint256 i = 0; i < n; i++) {
+            // gia cua nguoi choi nhap
+            uint256 p_i = s.participant_pricing[s.participants[i]];
+            // uint price = _products[s.participants[i].productID].price;
+            uint256 d_i = calc_d_i(P_current, P_new, p_i, n);
+            sum_d_i += d_i;
+
+            sum_numerator += p_i * (100 - d_i);
+        }
+
+        uint256 proposedPrice = sum_numerator / (100 * n - sum_d_i);
+        return proposedPrice;
     }
 }

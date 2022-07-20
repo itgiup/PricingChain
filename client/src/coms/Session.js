@@ -20,7 +20,7 @@ fontawesome.library.add(faPlay, faPause, faHandHoldingDollar, faAnglesRight, faL
 
 class Session extends Component {
     state = {
-        validated: true, timeout: 0, price: 0, participant_pricings: [], timeLeft: -0,
+        validated: true, timeout: 0, price: 0, proposedPrice: 0, participant_pricings: [], timeLeft: -0,
     }
     componentDidMount = async () => {
         await this.getSession();
@@ -39,6 +39,15 @@ class Session extends Component {
                     }
                 }
             });
+            contract.events.onSetPrice((error, event) => {
+                if (error) throw error;
+                else {
+                    if (parseInt(event.returnValues.sessionID) === session.id) {
+                        // console.log("onSetPrice", event.returnValues);
+                        this.getSession(session.id);
+                    }
+                }
+            });
             // contract.events.onClosedSession((error, event) => {
             //     if (error) throw error;
             //     else {
@@ -52,7 +61,7 @@ class Session extends Component {
     }
 
     onPriceChange = (e) => {
-        let value = e.target.value;
+        let value = Math.abs(parseInt(e.target.value));
         this.setState({ price: value })
     }
 
@@ -121,8 +130,8 @@ class Session extends Component {
         const { session, contract, accounts, notify } = this.props;
         contract.methods.setPrice(session.id, this.state.price, session.productID).send({ from: accounts[0] })
             .then((res) => {
-                // console.log('setPrice res', res.events.onSetPrice.returnValues);
-                notify("set price success");
+                console.log('setPrice res', res.events.onSetPrice.returnValues);
+                notify(["set price success", "success"]);
             })
             .catch(error => {
                 let message = 'error: ' + error.message.substring(error.message.indexOf('"reason":"'), error.message.indexOf('},"stack":')).split(':')[1]
@@ -142,6 +151,7 @@ class Session extends Component {
                 ipfsID: data.ipfsID,
                 name: data.name,
                 price: parseInt(data.price),
+                proposedPrice: parseInt(data.proposedPrice),
                 state: parseInt(data.state),
                 participant_pricings: data.participants.map((address, index) => ({
                     address: address,
@@ -153,7 +163,8 @@ class Session extends Component {
             this.setState({
                 price: session.price,
                 timeout: moment.duration(session.timeout, 'seconds').asMinutes(),
-                participant_pricings: session.participant_pricings
+                participant_pricings: session.participant_pricings,
+                proposedPrice: session.proposedPrice,
             });
             return session;
         } catch (error) {
@@ -209,6 +220,7 @@ class Session extends Component {
                                 {session.name} <Badge bg="warning" text="dark">{session.price} $</Badge > <FontAwesomeIcon icon="fas fa-angles-right" color="#0d6efdab" /></Card.Title>
                         </OverlayTrigger>
                         <Card.Text style={styles.ipfsID}>
+                            <Badge>{this.state.proposedPrice} $</Badge>
                             {session.ipfsID}&nbsp;
                             <BtnCopy value={session.ipfsID} />
                             <div style={styles.timeStarted}>

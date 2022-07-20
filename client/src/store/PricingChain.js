@@ -65,6 +65,7 @@ export const getSessions = createAsyncThunk(
                     ipfsID: data.ipfsIDs[index],
                     name: data.names[index],
                     price: parseInt(data.prices[index]),
+                    // proposedPrices: parseInt(data.proposedPrices[index]),
                     productID: parseInt(data.productIDs[index]),
                     sessionID: parseInt(sessionID),
                     state: parseInt(data.states[index]),
