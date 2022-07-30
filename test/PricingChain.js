@@ -24,14 +24,20 @@ let myproducts = [
   },
 ];
 
+let mysesions = [
+  { productID: 0 },
+  { productID: 1 },
+  { productID: 2 },
+];
+
 contract("PricingChain", accounts => {
 
 
   it("Thêm sản phẩm", async () => {
     let contract = await PricingChain.deployed();
 
-    myproducts.map((p,i) => {
-      contract.addProduct(p.ipfsID, p.name, { from:accounts[0] })
+    myproducts.map((p, i) => {
+      contract.addProduct(p.ipfsID, p.name, { from: accounts[0] })
         .then(() => {
           console.log("success add ", p.name);
         }).catch(error => {
@@ -72,18 +78,34 @@ contract("PricingChain", accounts => {
   });
 
 
-  
-  it("Thêm sản phẩm", async () => {
+
+
+  it("Thêm session", async () => {
     let contract = await PricingChain.deployed();
-    accounts.map((v, i) => {
-      let name = v.slice(-3),
-        email = v.slice(-3) + "@gmail.com",
-        account = v;
-      console.log(i, name, email, account,)
-      contract.register(name, email, { from: account })
-        .then(res => console.log(res.events.onRegisted.returnValues))
-    })
+    mysesions.map(p =>
+      contract.createSession(p.productID, { from: window.myProvider.addresses[0] })
+        .then((res) => {
+          console.log("success createSession ", res.events.onCreatedSession.returnValues);
+        }).catch(error => {
+          console.error("thêm session", error.message);
+        })
+    )
   });
+
+
+
+  // it("kích hoạt session ngẫu nhiên", async () => {
+  //   let contract = await PricingChain.deployed();
+  //   let sessionID = random(0, mysesions.length - 1);
+  //   contract.startSession(sessionID, 0).send({ from: window.myProvider.addresses[0] })
+  //     .then(res => res.events.onStartedSession.returnValues.id)
+  // });
+
+
+  // /* */
+  // it("", async () => {
+  //   let contract = await PricingChain.deployed();
+  // });
 
 
 });
