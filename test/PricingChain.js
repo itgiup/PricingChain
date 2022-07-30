@@ -1,131 +1,89 @@
-const truffleAssert = require('truffle-assertions');
-
-const color = {
-  Reset: "\x1b[0m",
-  Bright: "\x1b[1m",
-  Dim: "\x1b[2m",
-  Underscore: "\x1b[4m",
-  Blink: "\x1b[5m",
-  Reverse: "\x1b[7m",
-  Hidden: "\x1b[8m",
-
-  FgBlack: "\x1b[30m",
-  FgRed: "\x1b[31m",
-  FgGreen: "\x1b[32m",
-  FgYellow: "\x1b[33m",
-  FgBlue: "\x1b[34m",
-  FgMagenta: "\x1b[35m",
-  FgCyan: "\x1b[36m",
-  FgWhite: "\x1b[37m",
-
-  BgBlack: "\x1b[40m",
-  BgRed: "\x1b[41m",
-  BgGreen: "\x1b[42m",
-  BgYellow: "\x1b[43m",
-  BgBlue: "\x1b[44m",
-  BgMagenta: "\x1b[45m",
-  BgCyan: "\x1b[46m",
-  BgWhite: "\x1b[47m"
-}
-
-function pLog(message) { console.log(Object.values(arguments).join(' ')) }
-function pTitle(message) { console.log(color.BgYellow + (Object.values(arguments).join(' ') + color.Reset)) }
-function pError(message) { console.log(color.FgRed + Object.values(arguments).join(' ') + color.Reset) }
-function pWarn(message) { console.log(color.FgYellow + Object.values(arguments).join(' ') + color.Reset) }
-function pSuccess(message) { console.log(color.FgGreen + Object.values(arguments).join(' ') + color.Reset) }
-
-const BN = web3.utils.BN
-
 const PricingChain = artifacts.require("./PricingChain.sol");
 
+function random(min, max) { return Math.floor(Math.random() * (max - min) + min); }
+let myproducts = [
+  {
+    name: "giày golf",
+    ipfsID: "QmNndBy2XHuM4f2vVwmykfkEXytAcrAX88HCfFC2V6VYNL"
+  },
+  {
+    name: "sim eject",
+    ipfsID: "QmcfykxRQcFjHJEBmng7RSHUf1FzzfpmPYVEu6Lmaf14rZ"
+  },
+  {
+    name: "samsung",
+    ipfsID: "QmXNzeqXwqtjJoUS3nS5CgJad9sspsaf5BKNadU8rLuGiF"
+  },
+  {
+    name: "iphone 11",
+    ipfsID: "QmbMjGZp3TgHUJuY4QNm9n1qg9Wy5LvG3MA36XiLi7QJx2"
+  },
+  {
+    name: "galaxy s22",
+    ipfsID: "QmSy425yK2bjAzWp2ba68HzFdAfwtfD64auk52xs5LoxQr"
+  },
+];
 
 contract("PricingChain", accounts => {
 
-  it("... add product", async () => {
-    let instance = await PricingChain.deployed();
 
-    // console.log("instance", instance)
-    pTitle("\n\n// 1. thêm sảm phẩm:     ");
+  it("Thêm sản phẩm", async () => {
+    let contract = await PricingChain.deployed();
 
-    let s = await instance.addProduct('QmSdQ8kf2ELtzrYMes9NC3KUVrbr66BgTBx2LuUAQ8cFm4', { from: accounts[0] });
-    pSuccess('addedProduct: ', s.logs[0].args.productID.toNumber())
-    s = await instance.addProduct('Qmdr7hfEx8ateqWddTftAwBV2j9uhYYWeEdVwuR27KuZzb', { from: accounts[0] });
-    pSuccess('addedProduct: ', s.logs[0].args.productID.toNumber())
-    s = await instance.addProduct('QmcNMB26KWY7wvEsTsSkZ4GEAcu31XaJvVNs3s7JjYMur6', { from: accounts[0] });
-    pSuccess('addedProduct: ', s.logs[0].args.productID.toNumber())
+    myproducts.map((p,i) => {
+      contract.addProduct(p.ipfsID, p.name, { from:accounts[0] })
+        .then(() => {
+          console.log("success add ", p.name);
+        }).catch(error => {
+          console.error("thêm sản phẩm", error.message);
+        })
+    });
+  });
 
-    pTitle("// thử lấy sản phẩm     ");
+
+
+  it("Thêm sản phẩm bị trùng", async () => {
+    let contract = await PricingChain.deployed();
     try {
-      let product = await instance.getProduct('QmcNMB26KWY7wvEsTsSkZ4GEAcu31XaJvVNs3s7JjYMur6')
-      pSuccess('getProduct: ', product.id.toNumber(), product.ipfsID.toString());
+      await contract.addProduct(
+        "QmNndBy2XHuM4f2vVwmykfkEXytAcrAX88HCfFC2V6VYNL",
+        "giay golf", { from: accounts[0] }
+      );
     } catch (error) {
-      pError('getProduct: ', error)
+      let m = error.toString();
+      let patern = "-- Reason given: ";
+      let mess = m.substring(m.search("-- Reason given: ") + patern.length);
+      assert.equal("This product has been added.", mess);
     }
+  });
 
 
-    pTitle("\n\n// 2. Tạo phiên đấu giá     ");
-    try {
-      let sessionID = await instance.createSession(1);
-      pSuccess('createSession(1): ', sessionID.logs[0].args.sessionID.toNumber())
 
-      sessionID = await instance.createSession(2);
-      pSuccess('createSession(2): ', sessionID.logs[0].args.sessionID.toNumber())
-    } catch (error) {
-      pError('createSession(2): ', error);
-    }
-
-
-    pTitle("\n\n// 3. Bắt đầu phiên đấu giá     ");
-    try {
-      let sessionID = await instance.startSession(0);
-      console.log('startSession(0): ', sessionID.logs[0].args.p)
-
-      sessionID = await instance.startSession(3);
-      console.log('startSession(3): ', sessionID.logs[0].args.p)
-    } catch (error) {
-      pError('startSession(3): ', error);
-    }
+  it("Người chơi đăng kí", async () => {
+    let contract = await PricingChain.deployed();
+    accounts.map((v, i) => {
+      let name = v.slice(-3),
+        email = v.slice(-3) + "@gmail.com",
+        account = v;
+      console.log(i, name, email, account,)
+      contract.register(name, email, { from: account })
+        .then(res => console.log(res.events.onRegisted.returnValues))
+    })
+  });
 
 
-    pTitle("\n\n// 4. Đấu giá     ");
-    try {
-      let pricing = await instance.pricing(0, 9);
-      pSuccess('pricing(0, 9): ', pricing.logs[0].args.participant);
+  
+  it("Thêm sản phẩm", async () => {
+    let contract = await PricingChain.deployed();
+    accounts.map((v, i) => {
+      let name = v.slice(-3),
+        email = v.slice(-3) + "@gmail.com",
+        account = v;
+      console.log(i, name, email, account,)
+      contract.register(name, email, { from: account })
+        .then(res => console.log(res.events.onRegisted.returnValues))
+    })
+  });
 
-      pricing = await instance.pricing(5, 6);
-      pSuccess('pricing(5, 6): ', pricing.logs[0].args.participant);
-
-    } catch (error) {
-      pError('pricing(5, 6): ', error);
-    }
-
-
-    pTitle("\n\n// 5. Đóng phiên đấu giá     ");
-    try {
-      let closed = await instance.closeSession(0);
-      console.log('closeSession(0): ', closed.logs[0].args.p);
-
-      // closed = await instance.closeSession(5);
-      // console.log('closeSession(5): ', closed.logs[0]);
-    } catch (error) {
-      pError('closeSession(5): ', error);
-    }
-
-    // 6. Chốt giá
-
-
-    // 7. Lấy thông tin sản phẩm
-
-
-    // await instance.createSession(2);
-    // await instance.createSession(1);
-    // let tx = await instance.createSession(3);
-    // truffleAssert.eventEmitted(tx, 'onCreatedSession', (ev) => {
-    //   console.log('eventEmitted', ev);
-    //   // return ev.player === bettingAccount && ev.betNumber.eq(ev.winningNumber);
-    //   return ev.sessionID
-    // });
-
-  })
 
 });

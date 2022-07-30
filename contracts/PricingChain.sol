@@ -70,7 +70,7 @@ contract PricingChain is Ownable {
 
     constructor() public {
         /* test */
-        addProduct(
+        /*addProduct(
             "QmSy425yK2bjAzWp2ba68HzFdAfwtfD64auk52xs5LoxQr",
             "galaxy s22"
         );
@@ -88,7 +88,7 @@ contract PricingChain is Ownable {
         guessPrice(0, 24 ether, 0x53C6E288B9eF2E2627b09E4DEAec3806A0571Cf1);
         guessPrice(0, 7 ether, 0x9428207253BC364209212d07B88E21c2fCF916d6);
         guessPrice(0, 4 ether, 0x2769C260f31240901271C53D72E263D16b4F1946);
-        closeSession(0);
+        closeSession(0);*/
     }
 
     // register and update user infomation
