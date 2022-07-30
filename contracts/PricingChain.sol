@@ -572,10 +572,9 @@ contract PricingChain is Ownable {
         return d;
     }
 
-    event calc(uint, uint, int);
 
     function calc_proposedPrice(uint256 sessionID)
-        public
+        public view
         sessionExist(sessionID)
         returns (int _proposedPrice, uint[] memory _deviationOfParticipants)
     {
@@ -601,42 +600,10 @@ contract PricingChain is Ownable {
             sum_d_i += d_i;
 
             sum_numerator += (int(p_i) * (100 - int(d_i)));
-            emit calc(p_i, d_i, sum_numerator);
         }
 
         int denominator = (100 * int(n) - int(sum_d_i));
         int proposedPrice = sum_numerator / denominator;
         return (proposedPrice, deviationOfParticipants);
-    }
-
-    function calc_proposedPrice_(uint256 sessionID)
-        public
-        view
-        sessionExist(sessionID)
-        returns (uint256 _proposedPrice, uint[] memory _deviationOfParticipants)
-    {
-        uint256 n = _sessions[sessionID].participants.length;
-        uint256 sum_d_i = 0;
-
-        // numerator, denominator in formular
-        uint256 sum_numerator = 0;
-
-        uint[] memory deviationOfParticipants = new uint[](n);
-        uint finalPrice = _sessions[sessionID].finalPrice;
-
-        for (uint256 i = 0; i < n; i++) {
-            // the given price of the participant
-            uint256 p_i = _sessions[sessionID].participant_pricing[
-                _sessions[sessionID].participants[i]
-            ];
-            // deviation of participant
-            uint256 d_i = calc_d_new(finalPrice, p_i);
-
-            deviationOfParticipants[i] = d_i;
-
-            sum_d_i += d_i;
-
-            sum_numerator += p_i * (100 - d_i);
-        }
     }
 }

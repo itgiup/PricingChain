@@ -131,9 +131,9 @@ class Session extends Component {
         console.log("setPrice", session.id);
         contract.methods.setPrice(session.id, web3.utils.toWei(this.state.price.toString(), 'ether')).send({ from: accounts[0] })
             .then((res) => {
-                console.log('setPrice res', res.events.calc.map(v => (
+                console.log('setPrice res', res.events/*.calc.map(v => (
                     [v.returnValues[0], v.returnValues[1], v.returnValues[2], v.returnValues[0] * (100 - v.returnValues[1])]
-                ))); //.onSetPrice.returnValues);
+                ))*/); //.onSetPrice.returnValues);
                 notify(["set price success", "success"]);
             })
             .catch(error => {
