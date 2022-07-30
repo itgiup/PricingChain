@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faCopy, faTag } from '@fortawesome/free-solid-svg-icons';
 
 import { connectWeb3 } from "../store/web3Store";
-import { getProducts, connectContract, dosomething, } from "../store/PricingChain";
+import { getProducts, connectContract, } from "../store/PricingChain";
 import { setToast, notify } from "../store/toast";
 
 import BtnCopy from "./BtnCopy"

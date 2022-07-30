@@ -8,7 +8,7 @@ import {
   Link, useMatch, useResolvedPath,
 } from "react-router-dom";
 
-import { Navbar, Nav, Col, Container, Form, FormControl, InputGroup, Row } from 'react-bootstrap';
+import { Navbar, Nav, Col, Container, Form, FormControl, InputGroup, Row, Button } from 'react-bootstrap';
 // import fontawesome from '@fortawesome/fontawesome'
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 // import { faCoffee, faCopy, faTag } from '@fortawesome/free-solid-svg-icons';
@@ -22,7 +22,11 @@ import "./App.css";
 import Admin from "./Admin";
 import Pricing from "./Pricing";
 import ConnectWeb3 from "./coms/ConnectWeb3";
+import { getSessions, connectContract } from "./store/PricingChain";
+import { connectWeb3 } from "./store/web3Store";
+import Users from "./coms/Users";
 
+import test from "./test"
 
 // fontawesome.library.add(faCopy, faTag);
 
@@ -56,6 +60,13 @@ class App extends Component {
     super(props);
   }
   componentDidMount = async () => {
+    const { web3, accounts } = this.props;
+    await this.props.connectWeb3()
+
+    window.ethereum.on('chainChanged', (chainId) => {
+      // console.log(chainId);
+      window.location.reload();
+    });
     // console.log("history: ", history);
     this.props.setToast(toastify);
   };
@@ -73,6 +84,8 @@ class App extends Component {
             <Nav className="me-auto">
               <MyLink to="/pricing">Pricing</MyLink>
               <MyLink to="/admin">Admin</MyLink>
+              <MyLink to="/users">Users</MyLink>
+              <Button onClick={test}>Test</Button>
             </Nav>
             <ConnectWeb3 />
           </Container>
@@ -81,6 +94,7 @@ class App extends Component {
         <Routes>
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/users" element={<Users />} />
         </Routes>
 
         <ToastContainer
@@ -101,10 +115,15 @@ const style = {
 }
 
 
-const mapStateToProps = (state, ownProps) => {
-  return {
-  }
-}
+const mapStateToProps = (state, ownProps) => ({
+  web3: state.web3Store.web3,
+  accounts: state.web3Store.accounts,
+  contract: state.PricingChain.contract,
+  sessions: state.PricingChain.sessions
+})
+
 export default connect(mapStateToProps, {
-  setToast, notify
+  setToast, notify,
+  connectWeb3: connectWeb3,
+  connectContract: connectContract,
 })(App);

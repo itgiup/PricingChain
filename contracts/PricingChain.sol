@@ -23,11 +23,22 @@ contract PricingChain is Ownable {
         State state;
         address[] participants;
         mapping(address => uint256) participant_pricing;
+        mapping(address => uint256) deviationOfParticipants;
         uint256 timeStarted;
         uint256 timeout;
-        uint256 proposedPrice;
+        int proposedPrice;
+        uint256 finalPrice;
     }
 
+    struct User {
+        string name;
+        string email;
+        address walletAddress;
+        uint accumulatedDeviation;
+        uint numbersOfSessionJoined;
+    }
+
+    event onRegisted(string name, string email, address addr);
     event onProductAdded(
         uint256 productID,
         string ipfsID,
@@ -42,8 +53,10 @@ contract PricingChain is Ownable {
         uint256 productID,
         uint256 price,
         uint256 sessionID,
-        uint256 proposedPrice
+        int proposedPrice,
+        uint[] deviationOfParticipants
     );
+
     // Số người tham gia tối đa
     uint8 private participantsLimit = 10;
 
@@ -53,8 +66,119 @@ contract PricingChain is Ownable {
 
     // danh sách session
     Session[] private _sessions;
+    User[] public _users;
 
-    constructor() {}
+    constructor() public {
+        /* test */
+        addProduct(
+            "QmSy425yK2bjAzWp2ba68HzFdAfwtfD64auk52xs5LoxQr",
+            "galaxy s22"
+        );
+        addProduct(
+            "QmNndBy2XHuM4f2vVwmykfkEXytAcrAX88HCfFC2V6VYNL",
+            "giay golf"
+        );
+        // _products[0].price = 10;
+
+        createSession(0);
+        startSession(0, 0);
+
+        guessPrice(0, 5 ether, 0x746e9Fbb7E066435eF4208E3661e4B42aD09A0dD);
+        guessPrice(0, 2 ether, 0xe8584AA83Df68EA98e840dAc05782B81559D1Da1);
+        guessPrice(0, 24 ether, 0x53C6E288B9eF2E2627b09E4DEAec3806A0571Cf1);
+        guessPrice(0, 7 ether, 0x9428207253BC364209212d07B88E21c2fCF916d6);
+        guessPrice(0, 4 ether, 0x2769C260f31240901271C53D72E263D16b4F1946);
+        closeSession(0);
+    }
+
+    // register and update user infomation
+    function register(string memory name, string memory email)
+        public
+        returns (bool _exist)
+    {
+        address addr = msg.sender;
+        bool exist = false;
+        for (uint i = 0; i < _users.length; i++) {
+            if (addr == _users[i].walletAddress) {
+                exist = true;
+                User storage u;
+                u = _users[i];
+                u.name = name;
+                u.email = email;
+                emit onRegisted(name, email, addr);
+                return (exist);
+            }
+        }
+        if (!exist) {
+            User storage u;
+            u = _users.push();
+            u.name = name;
+            u.email = email;
+            u.walletAddress = addr;
+            emit onRegisted(name, email, addr);
+            return (exist);
+        }
+    }
+
+    function getUser(address addr)
+        public
+        view
+        returns (
+            string memory _name,
+            string memory _email,
+            address _walletAddress,
+            uint _accumulatedDeviation,
+            uint _numbersOfSessionJoined
+        )
+    {
+        User memory u;
+        for (uint256 i = 0; i < _users.length; i++) {
+            if (_users[i].walletAddress == addr) {
+                u = _users[i];
+            }
+        }
+        return (
+            u.name,
+            u.email,
+            u.walletAddress,
+            u.accumulatedDeviation,
+            u.numbersOfSessionJoined
+        );
+    }
+
+    function getUsers()
+        public
+        view
+        returns (
+            string[] memory _names,
+            string[] memory _emails,
+            address[] memory _walletAddresses
+        )
+    {
+        string[] memory names = new string[](_users.length);
+        string[] memory emails = new string[](_users.length);
+        address[] memory walletAddresses = new address[](_users.length);
+        for (uint i = 0; i < _users.length; i++) {
+            names[i] = _users[i].name;
+            emails[i] = _users[i].email;
+            walletAddresses[i] = _users[i].walletAddress;
+        }
+        return (names, emails, walletAddresses);
+    }
+
+    function setUserAccumulatedDeviation(
+        address user,
+        uint accumulatedDeviation
+    ) public onlyOwner returns (bool status) {
+        for (uint i = 0; i < _users.length; i++) {
+            if (_users[i].walletAddress == user) {
+                _users[i].accumulatedDeviation = accumulatedDeviation;
+                _users[i].numbersOfSessionJoined++;
+                return true;
+            }
+        }
+        return false;
+    }
 
     modifier isProductAdded(string memory ipfsID) {
         for (uint256 i = 0; i < _products.length; i++) {
@@ -265,7 +389,7 @@ contract PricingChain is Ownable {
             string memory ipfsID,
             string memory name,
             uint256 price,
-            uint256 proposedPrice,
+            int proposedPrice,
             State state,
             address[] memory participants,
             uint256[] memory participant_pricings,
@@ -305,19 +429,62 @@ contract PricingChain is Ownable {
         _;
     }
 
-    function setPrice(
-        uint256 sessionID,
-        uint256 price,
-        uint256 productID
-    ) public onlyOwner sessionClosed(sessionID) productExist(productID) {
+    function setPrice(uint256 sessionID, uint256 price)
+        public
+        onlyOwner
+        sessionClosed(sessionID)
+        productExist(_sessions[sessionID].productID)
+    {
+        uint256 productID = _sessions[sessionID].productID;
         _products[productID].price = price;
-        uint256 proposedPrice = calcProposedPrice(
+
+        Session storage s = _sessions[sessionID];
+        s.finalPrice = price;
+
+        (
+            int proposedPrice,
+            uint[] memory deviationOfParticipants
+        ) = calc_proposedPrice(sessionID);
+
+        s.proposedPrice = proposedPrice;
+
+        // save deviationOfParticipants
+        for (uint i = 0; i < deviationOfParticipants.length; i++) {
+            s.deviationOfParticipants[
+                s.participants[i]
+            ] = deviationOfParticipants[i];
+        }
+
+        // accumulated deviation
+        // tính toán từng độ lệch tích lũy của từng người chơi
+        for (uint256 i = 0; i < s.participants.length; i++) {
+            uint d_new = calc_d_new(
+                price,
+                s.participant_pricing[s.participants[i]]
+            );
+
+            (, , , uint d_current, uint numbersOfSessionJoined) = getUser(
+                s.participants[i]
+            );
+            uint accumulatedDeviation = calc_accumulatedDeviation(
+                d_current,
+                d_new,
+                numbersOfSessionJoined
+            );
+            // save accumulatedDeviation, numbersOfSessionJoined + 1
+            setUserAccumulatedDeviation(
+                s.participants[i],
+                accumulatedDeviation
+            );
+        }
+
+        emit onSetPrice(
+            productID,
+            price,
             sessionID,
-            _products[productID].price,
-            price
+            proposedPrice,
+            deviationOfParticipants
         );
-        _sessions[sessionID].proposedPrice = proposedPrice;
-        emit onSetPrice(productID, price, sessionID, proposedPrice);
     }
 
     // kiểm tra vượt quá số người tham gia định giá 10
@@ -351,72 +518,125 @@ contract PricingChain is Ownable {
         _;
     }
 
-    function guessPrice(uint256 sessionID, uint256 price)
+    function guessPrice(
+        uint256 sessionID,
+        uint256 price,
+        address addr
+    )
         public
         sessionExist(sessionID)
         checkParticipantsLimit(sessionID)
         checkTimeout(sessionID)
     {
+        // address addr = msg.sender;
         Session storage s = _sessions[sessionID];
         require(s.state == State.OPEN, "Session closed");
-        s.participant_pricing[msg.sender] = price;
+        s.participant_pricing[addr] = price;
 
         // nếu trong người này đã pricing rồi thì ko đưa vào danh sách participants
         bool exist = false;
         for (uint256 i = 0; i < s.participants.length; i++) {
-            if (s.participants[i] == msg.sender) {
+            if (s.participants[i] == addr) {
                 exist = true;
                 break;
             }
         }
-        if (!exist) s.participants.push(msg.sender);
-        emit onGuessPrice(msg.sender, price, sessionID);
+        if (!exist) s.participants.push(addr);
+        emit onGuessPrice(addr, price, sessionID);
     }
 
     /*
         P: The final price
         p: The given price of the participant
-        n: number of all participants
+        d_new: deviation in the current session
     */
-    function calc_d_new(uint256 P, uint256 p) public pure returns (uint256) {
-        uint256 d_new = (myMath.abs(int256(P - p)) / P) * 100;
+    function calc_d_new(uint256 finalPice, uint256 pricing)
+        public
+        pure
+        returns (uint256)
+    {
+        if (finalPice == 0) return 0;
+        uint256 d_new = ((
+            finalPice > pricing ? finalPice - pricing : pricing - finalPice
+        ) / finalPice) * 100;
         return d_new;
     }
 
-    function calc_d_i(
-        uint256 P_current,
-        uint256 P_new,
-        uint256 p,
+    /* n: number of all participants */
+    function calc_accumulatedDeviation(
+        uint256 d_current,
+        uint256 d_new,
         uint256 n
     ) public pure returns (uint256) {
-        uint256 d_current = calc_d_new(P_current, p);
-        uint256 d_new = calc_d_new(P_new, p);
         uint256 d = ((d_current * n) + d_new) / (n + 1);
         return d;
     }
 
-    function calcProposedPrice(
-        uint256 sessionID,
-        uint256 P_current,
-        uint256 P_new
-    ) public view returns (uint256) {
-        Session storage s = _sessions[sessionID];
-        uint256 n = s.participants.length;
+    event calc(uint, uint, int);
+
+    function calc_proposedPrice(uint256 sessionID)
+        public
+        sessionExist(sessionID)
+        returns (int _proposedPrice, uint[] memory _deviationOfParticipants)
+    {
+        // Session storage s = _sessions[sessionID];
+        uint256 n = _sessions[sessionID].participants.length;
+        uint256 sum_d_i = 0;
+
+        // numerator, denominator in formular
+        int sum_numerator = 0;
+
+        uint[] memory deviationOfParticipants = new uint[](n);
+        uint finalPrice = _sessions[sessionID].finalPrice;
+
+        for (uint256 i = 0; i < n; i++) {
+            // the given price of the participant
+            uint256 p_i = _sessions[sessionID].participant_pricing[
+                _sessions[sessionID].participants[i]
+            ];
+            // deviation of participant
+            uint256 d_i = calc_d_new(finalPrice, p_i);
+
+            deviationOfParticipants[i] = d_i;
+            sum_d_i += d_i;
+
+            sum_numerator += (int(p_i) * (100 - int(d_i)));
+            emit calc(p_i, d_i, sum_numerator);
+        }
+
+        int denominator = (100 * int(n) - int(sum_d_i));
+        int proposedPrice = sum_numerator / denominator;
+        return (proposedPrice, deviationOfParticipants);
+    }
+
+    function calc_proposedPrice_(uint256 sessionID)
+        public
+        view
+        sessionExist(sessionID)
+        returns (uint256 _proposedPrice, uint[] memory _deviationOfParticipants)
+    {
+        uint256 n = _sessions[sessionID].participants.length;
         uint256 sum_d_i = 0;
 
         // numerator, denominator in formular
         uint256 sum_numerator = 0;
+
+        uint[] memory deviationOfParticipants = new uint[](n);
+        uint finalPrice = _sessions[sessionID].finalPrice;
+
         for (uint256 i = 0; i < n; i++) {
-            // gia cua nguoi choi nhap
-            uint256 p_i = s.participant_pricing[s.participants[i]];
-            // uint price = _products[s.participants[i].productID].price;
-            uint256 d_i = calc_d_i(P_current, P_new, p_i, n);
+            // the given price of the participant
+            uint256 p_i = _sessions[sessionID].participant_pricing[
+                _sessions[sessionID].participants[i]
+            ];
+            // deviation of participant
+            uint256 d_i = calc_d_new(finalPrice, p_i);
+
+            deviationOfParticipants[i] = d_i;
+
             sum_d_i += d_i;
 
             sum_numerator += p_i * (100 - d_i);
         }
-
-        uint256 proposedPrice = sum_numerator / (100 * n - sum_d_i);
-        return proposedPrice;
     }
 }

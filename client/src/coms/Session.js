@@ -127,31 +127,34 @@ class Session extends Component {
         event.preventDefault();
         event.stopPropagation();
 
-        const { session, contract, accounts, notify } = this.props;
-        contract.methods.setPrice(session.id, this.state.price, session.productID).send({ from: accounts[0] })
+        const { web3, session, contract, accounts, notify } = this.props;
+        console.log("setPrice", session.id);
+        contract.methods.setPrice(session.id, web3.utils.toWei(this.state.price.toString(), 'ether')).send({ from: accounts[0] })
             .then((res) => {
-                console.log('setPrice res', res.events.onSetPrice.returnValues);
+                console.log('setPrice res', res.events.calc.map(v => (
+                    [v.returnValues[0], v.returnValues[1], v.returnValues[2], v.returnValues[0] * (100 - v.returnValues[1])]
+                ))); //.onSetPrice.returnValues);
                 notify(["set price success", "success"]);
             })
             .catch(error => {
                 let message = 'error: ' + error.message.substring(error.message.indexOf('"reason":"'), error.message.indexOf('},"stack":')).split(':')[1]
                 notify(message);
                 console.error('setPrice error', error);
-            })
+            });
     }
 
     getSession = async (id = this.props.session.id) => {
         try {
             let data = await this.props.contract.methods.getSession(id).call();
             // console.log('getSession', data);
-
+            const { web3 } = this.props;
             let session = {
                 id: parseInt(data.sessionID),
                 productID: parseInt(data.productID),
                 ipfsID: data.ipfsID,
                 name: data.name,
-                price: parseInt(data.price),
-                proposedPrice: parseInt(data.proposedPrice),
+                price: parseInt(web3.utils.fromWei(data.price, 'ether')),
+                proposedPrice: parseInt(web3.utils.fromWei(data.proposedPrice, 'ether')),
                 state: parseInt(data.state),
                 participant_pricings: data.participants.map((address, index) => ({
                     address: address,
@@ -177,8 +180,8 @@ class Session extends Component {
         event.preventDefault();
         event.stopPropagation();
 
-        const { session, contract, accounts, notify } = this.props;
-        contract.methods.guessPrice(session.id, this.state.price).send({ from: accounts[0] })
+        const { web3, session, contract, accounts, notify } = this.props;
+        contract.methods.guessPrice(session.id, web3.utils.toWei(this.state.price.toString(), 'ether')).send({ from: accounts[0] })
             .then((res) => {
                 notify(["pricing susscess", "success"]);
                 this.getSession();
@@ -191,7 +194,7 @@ class Session extends Component {
     }
 
     render() {
-        const { session, accounts, owner } = this.props;
+        const { web3, session, accounts, owner } = this.props;
         let disabled = 0 === session.state || this.state.participant_pricings.length >= 10
         /* Danh sách đã dự đoán giá */
         const popover = (
@@ -201,7 +204,7 @@ class Session extends Component {
                     <ListGroup className="list-group-flush">
                         {this.state.participant_pricings.map((participant, index) => (
                             <ListGroup.Item className="text-center" key={index}>
-                                ..{participant.address.slice(-3)} <Badge bg="warning" text="dark"> {participant.pricing} $</Badge>
+                                ..{participant.address.slice(-3)} <Badge bg="warning" text="dark"> {web3.utils.fromWei(participant.pricing.toString())} $</Badge>
                             </ListGroup.Item>
                         ))}
                     </ListGroup>
@@ -217,10 +220,10 @@ class Session extends Component {
                         <OverlayTrigger trigger={["hover", "hover"]} placement="right" overlay={popover}>
                             <Card.Title>
                                 {disabled ? <FontAwesomeIcon icon="fa-solid fa-lock" color="#0d6efdd9" /> : <FontAwesomeIcon icon="fas fa-lock-open" color="#099956d9" />}&nbsp;
-                                {session.name} <Badge bg="warning" text="dark">{session.price} $</Badge > <FontAwesomeIcon icon="fas fa-angles-right" color="#0d6efdab" /></Card.Title>
+                                {session.name} <Badge bg="warning" text="dark">{web3.utils.fromWei(session.price.toString(), 'ether')} $</Badge > <FontAwesomeIcon icon="fas fa-angles-right" color="#0d6efdab" /></Card.Title>
                         </OverlayTrigger>
                         <Card.Text style={styles.ipfsID}>
-                            <Badge>{this.state.proposedPrice} $</Badge>
+                            <i>proposed Price</i> <Badge>{this.state.proposedPrice} $</Badge>
                             {session.ipfsID}&nbsp;
                             <BtnCopy value={session.ipfsID} />
                             <div style={styles.timeStarted}>

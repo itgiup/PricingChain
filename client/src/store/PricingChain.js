@@ -80,15 +80,6 @@ export const getSessions = createAsyncThunk(
     }
 )
 
-export const dosomething = createAsyncThunk(
-    'dosomething',
-    async (args, thunkAPI) => {
-        // console.log(args, thunkAPI.getState())
-        let d = 1;
-        setTimeout(() => { d = 2 }, 2000);
-        return d;
-    }
-)
 export const PricingChainlice = createSlice({
     name: 'PricingChain',
     initialState: {
@@ -103,8 +94,9 @@ export const PricingChainlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(connectContract.fulfilled, (state, action) => {
-            state.contract = action.payload.contract
+            state.contract = action.payload.contract;
             state.owner = action.payload.owner;
+            window.contract = action.payload.contract;
             // console.log(state, action.payload);
         })
 
@@ -116,10 +108,6 @@ export const PricingChainlice = createSlice({
         builder.addCase(getProducts.fulfilled, (state, action) => {
             state.products = action.payload;
             // console.log('getProducts: ', action.payload);
-        })
-
-        builder.addCase(dosomething.fulfilled, (state, action) => {
-            state.something += action.payload;
         })
     },
 })

@@ -7,21 +7,10 @@ import ConnectWeb3 from "./coms/ConnectWeb3";
 import Sessions from "./coms/Sessions";
 import Products from "./coms/Products";
 
-import test from "./test"
 class Admin extends Component {
     componentDidMount = async () => {
-        const { web3, accounts } = this.props;
-        await this.props.connectWeb3()
-
-        window.ethereum.on('chainChanged', (chainId) => {
-            // console.log(chainId);
-            window.location.reload();
-        });
     }
 
-    getSession = async () => {
-        const { web3, accounts } = this.props;
-    }
 
     render = () => {
         const { web3, accounts, sessions, products } = this.props;
@@ -31,7 +20,7 @@ class Admin extends Component {
             </Alert>
         );
         return (
-            <><Button onClick={test}>Test</Button>
+            <>
                 <Accordion defaultActiveKey="1">
                     <Accordion.Item eventKey="0">
                         <Accordion.Header>Products({products.length})</Accordion.Header>

@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 library myMath {
-    function abs(int number) internal pure returns (uint) {
-        return uint(number > 0 ? number : (-number));
+    function abs(uint a, uint b) internal pure returns (uint) {
+        
+        return a > b ? (a - b) : (b - a);
     }
 }
