@@ -1,6 +1,8 @@
 const PricingChain = artifacts.require("./PricingChain.sol");
 
 function random(min, max) { return Math.floor(Math.random() * (max - min) + min); }
+
+
 let myproducts = [
   {
     name: "giày golf",
@@ -73,19 +75,18 @@ contract("PricingChain", accounts => {
         account = v;
       console.log(i, name, email, account,)
       contract.register(name, email, { from: account })
-        .then(res => console.log(res.events.onRegisted.returnValues))
+        // .then(res => console.log(res.events.onRegisted.returnValues))
     })
   });
-
 
 
 
   it("Thêm session", async () => {
     let contract = await PricingChain.deployed();
     mysesions.map(p =>
-      contract.createSession(p.productID, { from: window.myProvider.addresses[0] })
+      contract.createSession(p.productID, { from: accounts[0] })
         .then((res) => {
-          console.log("success createSession ", res.events.onCreatedSession.returnValues);
+          // console.log("success createSession ", res.events.onCreatedSession.returnValues);
         }).catch(error => {
           console.error("thêm session", error.message);
         })
@@ -94,18 +95,33 @@ contract("PricingChain", accounts => {
 
 
 
-  // it("kích hoạt session ngẫu nhiên", async () => {
-  //   let contract = await PricingChain.deployed();
-  //   let sessionID = random(0, mysesions.length - 1);
-  //   contract.startSession(sessionID, 0).send({ from: window.myProvider.addresses[0] })
-  //     .then(res => res.events.onStartedSession.returnValues.id)
-  // });
+  it("kích hoạt session 0", async () => {
+    let contract = await PricingChain.deployed();
+    let sessionID = 0;
+    contract.startSession(sessionID, 0, { from: accounts[0] })
+      // .then(res => res.events.onStartedSession.returnValues.id)
+  });
 
 
-  // /* */
-  // it("", async () => {
-  //   let contract = await PricingChain.deployed();
-  // });
+  it("tạo ngẫu nhiên các ví người chơi tham gia đoán giá", async () => {
+    let contract = await PricingChain.deployed();
+    let sessionID = 0;
+    let numberAddresses = random(1, accounts.length - 1);
+    let doanGia = (sessionID, numberAddresses, i = 1) => {
+      if (i <= numberAddresses) {
+        let address = accounts[random(1, accounts.length - 1)];
+        console.log("guess price: ", sessionID, address);
+
+        contract.guessPrice(sessionID, random(1, 100), { from: address })
+          // .then(res => console.log(res.events.onGuessPrice.returnValues));
+        return doanGia(sessionID, numberAddresses, i + 1);
+      } else return sessionID;
+    }
+
+    return contract.startSession(sessionID, 0, { from: accounts[0] }).then(() => {
+      return doanGia(sessionID, numberAddresses);
+    })
+  });
 
 
 });
