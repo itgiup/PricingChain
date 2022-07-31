@@ -105,7 +105,8 @@ const test2 = async () => {
 
         // kích hoạt session ngẫu nhiên
         .then(() => {
-            let sessionID = random(0, mysesions.length - 1);
+            let sessionID = 0;// random(0, mysesions.length - 1);
+            console.log(mysesions, sessionID)
             return contract.methods.startSession(sessionID, 0).send({ from: window.myProvider.addresses[0] })
                 .then(res => res.events.onStartedSession.returnValues.id)
         })

@@ -48,7 +48,13 @@ contract PricingChain is Ownable {
     event onCreatedSession(Product p, uint256 sessionID);
     event onStartedSession(uint256 id, State, Product p);
     event onClosedSession(uint256 id, State, Product p);
-    event onGuessPrice(address participant, uint256 price, uint256 sessionID);
+    event onGuessPrice(
+        address participant,
+        uint256 price,
+        uint256 sessionID,
+        uint numbersOfSessionJoined,
+        uint accumulatedDeviation
+    );
     event onSetPrice(
         uint256 productID,
         uint256 price,
@@ -550,12 +556,22 @@ contract PricingChain is Ownable {
             }
         }
         if (!exist) s.participants.push(addr);
-        emit onGuessPrice(addr, price, sessionID);
-        
-        for (uint256 i = 0; i < _users.length; i++) {
-            if (_users[i].walletAddress == addr)
-                _users[i].numbersOfSessionJoined = countSessionJoined(addr);
+        uint numbersOfSessionJoined = 0;
+        uint256 i = 0;
+        for (i; i < _users.length; i++) {
+            if (_users[i].walletAddress == addr) {
+                numbersOfSessionJoined = _users[i]
+                    .numbersOfSessionJoined = countSessionJoined(addr);
+                break;
+            }
         }
+        emit onGuessPrice(
+            addr,
+            price,
+            sessionID,
+            numbersOfSessionJoined,
+            _users[i].accumulatedDeviation
+        );
     }
 
     function countSessionJoined(address addr) public view returns (uint) {

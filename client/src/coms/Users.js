@@ -26,14 +26,37 @@ class Users extends Component {
                 if (this.props.owner !== acc) {
                     this.getUser(acc);
                 } else this.getUsers();
+                this.listenEvent(this.props.owner === acc);
                 clearInterval(waitContract);
             }
         }, 200);
     }
+
+    listenEvent = async (isOwner = false) => {
+        this.props.contract.events.onGuessPrice((error, event) => {
+            if (error) throw error;
+            else {
+                console.log('onSetPrice', event);
+                if (isOwner) this.getUsers();
+                else this.getUser();
+            }
+        });
+
+        this.props.contract.events.onSetPrice((error, event) => {
+            if (error) throw error;
+            else {
+                console.log('onSetPrice', event);
+                if (isOwner) this.getUsers();
+                else this.getUser();
+            }
+        });
+    }
+
     onNameChange = async (event) => {
         // console.log(event.target.value);
         this.setState({ name: event.target.value })
     }
+
     onEmailChange = async (event) => {
         this.setState({ email: event.target.value })
     }
@@ -83,6 +106,7 @@ class Users extends Component {
                 this.props.notify(err.message);
             });
     }
+
     render() {
         const { web3, contract, accounts, owner } = this.props;
         if (!web3 || !accounts || accounts.length === 0) return (
