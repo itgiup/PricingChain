@@ -9,8 +9,8 @@ import { connectWeb3 } from "../store/web3Store";
 import { getProducts, connectContract, } from "../store/PricingChain";
 import { setToast, notify } from "../store/toast";
 
-import BtnCopy from "./BtnCopy"
-import Product from "./Product"
+import BtnCopy from "./BtnCopy";
+import Product from "./Product";
 
 window.Buffer = require('buffer/').Buffer
 window.Tx = require('@ethereumjs/tx').Transaction;
@@ -25,12 +25,19 @@ class Products extends Component {
     }
 
     componentDidMount = async () => {
+        const { accounts } = this.props;
         if (this.props.contract == null) {
             this.props.connectContract();
         }
         // khởi động contract
         let wait = setInterval(() => {
             if (this.props.contract != null) {
+                this.props.contract.methods.getUser(accounts[0]).call({ from: accounts[0] })
+                    .then(res => {
+                        if (res._email == "" || res._name == "") window.location.href = "users";
+                        console.log("user:", res);
+                    });
+
                 this.props.getProducts();
                 this.listenEvents(this.props.contract);
                 clearInterval(wait);

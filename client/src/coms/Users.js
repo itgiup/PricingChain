@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from 'react-redux'
-import { Table, Tab, Alert, ListGroup, Row, Button, Col, Form, InputGroup } from 'react-bootstrap';
+import { Table, Tab, Alert, ListGroup, Row, Button, Col, Form, InputGroup, Badge } from 'react-bootstrap';
 import { connectWeb3 } from "../store/web3Store";
 import { getSessions, connectContract } from "../store/PricingChain";
 import Session from "./Session";
@@ -48,6 +48,8 @@ class Users extends Component {
                         name: data._names[i],
                         email: data._emails[i],
                         address: data._walletAddresses[i],
+                        accumulatedDeviation: parseInt(data._accumulatedDeviations[i]),
+                        numbersOfSessionJoined: parseInt(data._numbersOfSessionJoineds[i]),
                     };
                 })
             })
@@ -60,8 +62,10 @@ class Users extends Component {
             console.log('getUsers', data);
             this.setState({
                 name: data._name,
-                email: data._emails,
+                email: data._email,
                 address: data._walletAddress,
+                accumulatedDeviation: parseInt(data._accumulatedDeviation),
+                numbersOfSessionJoined: parseInt(data._numbersOfSessionJoined),
             })
         })
     }
@@ -91,14 +95,16 @@ class Users extends Component {
                 </Row>
             </>
         );
+
         if (!contract) {
             this.props.connectContract();
             return (
                 <>Please connect contract</>
             );
         }
+
+        /* admin */
         if (owner === accounts[0])
-            // admin
             return (
                 <Table striped bordered hover>
                     <thead>
@@ -107,6 +113,7 @@ class Users extends Component {
                             <th>Name</th>
                             <th>Emails</th>
                             <th>address</th>
+                            <th>session joined</th>
                             <th>accumulated deviation</th>
                         </tr>
                     </thead>
@@ -118,18 +125,20 @@ class Users extends Component {
                                     <td>{v.name}</td>
                                     <td>{v.email}</td>
                                     <td>...{v.address.slice(-3)}</td>
-                                    <td></td>
+                                    <td>{v.numbersOfSessionJoined}</td>
+                                    <td>{v.accumulatedDeviation}</td>
                                 </tr>
                             ))
                         }
                     </tbody>
                 </Table>
             );
-        // user
+
+        /* user */
         return (
             <Col>
                 <Form onSubmit={this.register}>
-                    Sign up
+                    <b>Sign up / Update info</b>
                     <InputGroup className="mb-3">
                         <InputGroup.Text id="addon_name">name</InputGroup.Text>
                         <Form.Control
@@ -151,12 +160,16 @@ class Users extends Component {
                             required
                         />
                     </InputGroup>
-                    <Button type="submit">Register</Button>
-                </Form >
+                    <Button type="submit">Register / Update info</Button>
+                </Form>
+                <br />
+                accumulated Deviation <Badge>{this.state.accumulatedDeviation}</Badge> &nbsp; | &nbsp;
+                numbers Of Session Joined <Badge>{this.state.numbersOfSessionJoined}</Badge>
             </Col>
         )
     }
 }
+
 const styles = {
 }
 

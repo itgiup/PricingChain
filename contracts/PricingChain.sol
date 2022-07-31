@@ -152,18 +152,30 @@ contract PricingChain is Ownable {
         returns (
             string[] memory _names,
             string[] memory _emails,
-            address[] memory _walletAddresses
+            address[] memory _walletAddresses,
+            uint[] memory _accumulatedDeviations,
+            uint[] memory _numbersOfSessionJoineds
         )
     {
         string[] memory names = new string[](_users.length);
         string[] memory emails = new string[](_users.length);
         address[] memory walletAddresses = new address[](_users.length);
+        uint[] memory accumulatedDeviations = new uint[](_users.length);
+        uint[] memory numbersOfSessionJoineds = new uint[](_users.length);
         for (uint i = 0; i < _users.length; i++) {
             names[i] = _users[i].name;
             emails[i] = _users[i].email;
             walletAddresses[i] = _users[i].walletAddress;
+            accumulatedDeviations[i] = _users[i].accumulatedDeviation;
+            numbersOfSessionJoineds[i] = _users[i].numbersOfSessionJoined;
         }
-        return (names, emails, walletAddresses);
+        return (
+            names,
+            emails,
+            walletAddresses,
+            accumulatedDeviations,
+            numbersOfSessionJoineds
+        );
     }
 
     function setUserAccumulatedDeviation(
@@ -518,17 +530,13 @@ contract PricingChain is Ownable {
         _;
     }
 
-    function guessPrice(
-        uint256 sessionID,
-        uint256 price,
-        address addr
-    )
+    function guessPrice(uint256 sessionID, uint256 price)
         public
         sessionExist(sessionID)
         checkParticipantsLimit(sessionID)
         checkTimeout(sessionID)
     {
-        // address addr = msg.sender;
+        address addr = msg.sender;
         Session storage s = _sessions[sessionID];
         require(s.state == State.OPEN, "Session closed");
         s.participant_pricing[addr] = price;
@@ -543,6 +551,23 @@ contract PricingChain is Ownable {
         }
         if (!exist) s.participants.push(addr);
         emit onGuessPrice(addr, price, sessionID);
+        
+        for (uint256 i = 0; i < _users.length; i++) {
+            if (_users[i].walletAddress == addr)
+                _users[i].numbersOfSessionJoined = countSessionJoined(addr);
+        }
+    }
+
+    function countSessionJoined(address addr) public view returns (uint) {
+        uint count = 0;
+        for (uint256 i = 0; i < _sessions.length; i++) {
+            for (uint256 j = 0; j < _sessions[i].participants.length; j++) {
+                if (addr == _sessions[i].participants[j]) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     /*
@@ -572,9 +597,9 @@ contract PricingChain is Ownable {
         return d;
     }
 
-
     function calc_proposedPrice(uint256 sessionID)
-        public view
+        public
+        view
         sessionExist(sessionID)
         returns (int _proposedPrice, uint[] memory _deviationOfParticipants)
     {

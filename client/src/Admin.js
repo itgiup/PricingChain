@@ -11,7 +11,6 @@ class Admin extends Component {
     componentDidMount = async () => {
     }
 
-
     render = () => {
         const { web3, accounts, sessions, products } = this.props;
         if (!web3 || !accounts || accounts.length === 0) return (

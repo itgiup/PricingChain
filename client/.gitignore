@@ -67,4 +67,4 @@ node_modules/
 .env
 
 # test
-src/test.js
+src/testWallets.js
