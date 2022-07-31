@@ -32,7 +32,7 @@ class Product extends Component {
         }
     }
     render() {
-        const { accounts, owner, product } = this.props;
+        const { web3, accounts, owner, product } = this.props;
         return (
             <Col>
                 <Card style={{ width: '18rem' }} >
@@ -46,9 +46,10 @@ class Product extends Component {
                     </Card.Body>
                     <ListGroup className="list-group-flush">
                         <ListGroup.Item className="text-center">
+                            <b>{product.price === "0" ? "?" : web3.utils.fromWei(product.price, 'ether')}</b> $
                             {/* Phần dành cho admin */}
                             {accounts[0] === owner ?
-                                <> <b>{product.price === "0" ? "?" : product.price}</b> $ <Button onClick={e => this.createSession(product.id)}>Create session</Button></>
+                                <Button onClick={e => this.createSession(product.id)}>Create session</Button>
                                 : (<></>)
                             }
                         </ListGroup.Item>

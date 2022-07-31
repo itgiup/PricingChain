@@ -21,7 +21,7 @@ class Users extends Component {
         // chờ đến khi kết nối được contract
         let waitContract = setInterval(async () => {
             if (this.props.contract) {
-                console.log(this.props.owner, this.props.accounts[0], this.props.owner === this.props.accounts[0]);
+                // console.log(this.props.owner, this.props.accounts[0], this.props.owner === this.props.accounts[0]);
                 let acc = this.props.accounts[0];
                 if (this.props.owner !== acc) {
                     this.getUser(acc);
@@ -33,21 +33,22 @@ class Users extends Component {
     }
 
     listenEvent = async (isOwner = false) => {
+        const { web3, contract, accounts, notify } = this.props;
         this.props.contract.events.onGuessPrice((error, event) => {
             if (error) throw error;
             else {
-                console.log('onSetPrice', event);
+                // console.log('onGuessPrice', event.returnValues.participant, event.returnValues.participant === accounts[0]);
                 if (isOwner) this.getUsers();
-                else this.getUser();
+                else if (event.returnValues.participant === accounts[0]) this.getUser(accounts[0]);
             }
         });
 
         this.props.contract.events.onSetPrice((error, event) => {
             if (error) throw error;
             else {
-                console.log('onSetPrice', event);
+                // console.log('onSetPrice', event);
                 if (isOwner) this.getUsers();
-                else this.getUser();
+                else this.getUser(accounts[0]);
             }
         });
     }
@@ -82,7 +83,7 @@ class Users extends Component {
     getUser = async (address) => {
         const { web3, contract, accounts, notify } = this.props;
         return contract.methods.getUser(address).call().then((data) => {
-            console.log('getUsers', data);
+            // console.log('getUser', data);
             this.setState({
                 name: data._name,
                 email: data._email,
@@ -96,10 +97,10 @@ class Users extends Component {
     register = async (event) => {
         event.preventDefault();
         event.stopPropagation();
-        console.log(this.state.name, this.state.email)
+        // console.log(this.state.name, this.state.email)
         return this.props.contract.methods.register(this.state.name, this.state.email).send({ from: this.props.accounts[0] })
             .then(res => {
-                console.log(res.events.onRegisted.returnValues);
+                // console.log(res.events.onRegisted.returnValues);
                 this.props.notify(["registed", "success"])
             }).catch(err => {
                 console.error(err);
@@ -188,7 +189,7 @@ class Users extends Component {
                 </Form>
                 <br />
                 accumulated Deviation <Badge>{this.state.accumulatedDeviation}</Badge> &nbsp; | &nbsp;
-                numbers Of Session Joined <Badge>{this.state.numbersOfSessionJoined}</Badge>
+                number Of Session Joined <Badge>{this.state.numbersOfSessionJoined}</Badge>
             </Col>
         )
     }

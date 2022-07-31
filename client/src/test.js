@@ -9,28 +9,11 @@ import PricingChain from "./contracts/PricingChain.json";
 
 momentDurationFormatSetup(moment);
 
-
 function random(min, max) { return Math.floor(Math.random() * (max - min) + min); }
-
 
 let mywalletsPK = myWallets.map(v => v.pk);
 let mywallets = myWallets.map(v => v.address);
 window.myProvider = new HDWalletProvider(mywalletsPK, "http://localhost:8545", 0, 10);
-
-const test1 = async () => {
-    window.myProvider = new HDWalletProvider(mywallets, "http://localhost:8545", 0, 10);
-    window.myWeb3 = new Web3(window.myProvider)
-    let contract =
-        window.mycontract =
-        new window.myWeb3.eth.Contract(PricingChain.abi, PricingChain.networks[5777].address);
-    contract.methods.test().call({ from: window.myProvider.addresses[0] })
-        .then(rse => {
-            const now = new Date(parseInt(rse) * 1000);
-            let v = moment.unix(rse, 'YYYY/MM/DD HH:mm:ss');
-            console.log(v)
-        })
-        .catch(console.error)
-}
 
 const test2 = async () => {
     // if (!contract) return alert('error.....')

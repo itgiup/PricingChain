@@ -74,28 +74,7 @@ contract PricingChain is Ownable {
     Session[] private _sessions;
     User[] public _users;
 
-    constructor() public {
-        /* test */
-        /*addProduct(
-            "QmSy425yK2bjAzWp2ba68HzFdAfwtfD64auk52xs5LoxQr",
-            "galaxy s22"
-        );
-        addProduct(
-            "QmNndBy2XHuM4f2vVwmykfkEXytAcrAX88HCfFC2V6VYNL",
-            "giay golf"
-        );
-        // _products[0].price = 10;
-
-        createSession(0);
-        startSession(0, 0);
-
-        guessPrice(0, 5 ether, 0x746e9Fbb7E066435eF4208E3661e4B42aD09A0dD);
-        guessPrice(0, 2 ether, 0xe8584AA83Df68EA98e840dAc05782B81559D1Da1);
-        guessPrice(0, 24 ether, 0x53C6E288B9eF2E2627b09E4DEAec3806A0571Cf1);
-        guessPrice(0, 7 ether, 0x9428207253BC364209212d07B88E21c2fCF916d6);
-        guessPrice(0, 4 ether, 0x2769C260f31240901271C53D72E263D16b4F1946);
-        closeSession(0);*/
-    }
+    constructor() public {}
 
     // register and update user infomation
     function register(string memory name, string memory email)
@@ -557,10 +536,10 @@ contract PricingChain is Ownable {
         }
         if (!exist) s.participants.push(addr);
         uint numbersOfSessionJoined = 0;
-        uint256 i = 0;
-        for (i; i < _users.length; i++) {
-            if (_users[i].walletAddress == addr) {
-                numbersOfSessionJoined = _users[i]
+        uint256 j = 0;
+        for (j; j < _users.length; j++) {
+            if (_users[j].walletAddress == addr) {
+                numbersOfSessionJoined = _users[j]
                     .numbersOfSessionJoined = countSessionJoined(addr);
                 break;
             }
@@ -570,7 +549,7 @@ contract PricingChain is Ownable {
             price,
             sessionID,
             numbersOfSessionJoined,
-            _users[i].accumulatedDeviation
+            _users[j].accumulatedDeviation
         );
     }
 

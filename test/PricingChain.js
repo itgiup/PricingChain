@@ -38,16 +38,11 @@ contract("PricingChain", accounts => {
   it("Thêm sản phẩm", async () => {
     let contract = await PricingChain.deployed();
 
-    myproducts.map((p, i) => {
-      contract.addProduct(p.ipfsID, p.name, { from: accounts[0] })
-        .then(() => {
-          console.log("success add ", p.name);
-        }).catch(error => {
-          console.error("thêm sản phẩm", error.message);
-        })
+    myproducts.map(async (p, i) => {
+      let res = await contract.addProduct(p.ipfsID, p.name, { from: accounts[0] });
+      console.log("addProduct", p.name, res.logs[0].args.ipfsID);
     });
   });
-
 
 
   it("Thêm sản phẩm bị trùng", async () => {
@@ -75,54 +70,55 @@ contract("PricingChain", accounts => {
         account = v;
       console.log(i, name, email, account,)
       contract.register(name, email, { from: account })
-        // .then(res => console.log(res.events.onRegisted.returnValues))
+      // .then(res => console.log(res.events.onRegisted.returnValues))
     })
   });
 
 
-
-  it("Thêm session", async () => {
-    let contract = await PricingChain.deployed();
-    mysesions.map(p =>
-      contract.createSession(p.productID, { from: accounts[0] })
-        .then((res) => {
-          // console.log("success createSession ", res.events.onCreatedSession.returnValues);
-        }).catch(error => {
-          console.error("thêm session", error.message);
-        })
-    )
-  });
-
-
-
-  it("kích hoạt session 0", async () => {
-    let contract = await PricingChain.deployed();
-    let sessionID = 0;
-    contract.startSession(sessionID, 0, { from: accounts[0] })
-      // .then(res => res.events.onStartedSession.returnValues.id)
-  });
-
+  /*  
   
-
-  it("tạo ngẫu nhiên các ví người chơi tham gia đoán giá", async () => {
-    let contract = await PricingChain.deployed();
-    let sessionID = 0;
-    let numberAddresses = random(1, accounts.length - 1);
-    let doanGia = (sessionID, numberAddresses, i = 1) => {
-      if (i <= numberAddresses) {
-        let address = accounts[random(1, accounts.length - 1)];
-        console.log("guess price: ", sessionID, address);
-
-        contract.guessPrice(sessionID, random(1, 100), { from: address })
-          // .then(res => console.log(res.events.onGuessPrice.returnValues));
-        return doanGia(sessionID, numberAddresses, i + 1);
-      } else return sessionID;
-    }
-
-    return contract.startSession(sessionID, 0, { from: accounts[0] }).then(() => {
-      return doanGia(sessionID, numberAddresses);
-    })
-  });
-
+    it("Thêm session", async () => {
+      let contract = await PricingChain.deployed();
+      mysesions.map(p =>
+        contract.createSession(p.productID, { from: accounts[0] })
+          .then((res) => {
+            // console.log("success createSession ", res.events.onCreatedSession.returnValues);
+          }).catch(error => {
+            console.error("thêm session", error.message);
+          })
+      )
+    });
+  
+  
+  
+    it("kích hoạt session 0", async () => {
+      let contract = await PricingChain.deployed();
+      let sessionID = 0;
+      contract.startSession(sessionID, 0, { from: accounts[0] })
+        // .then(res => res.events.onStartedSession.returnValues.id)
+    });
+  
+    
+  
+    it("tạo ngẫu nhiên các ví người chơi tham gia đoán giá", async () => {
+      let contract = await PricingChain.deployed();
+      let sessionID = 0;
+      let numberAddresses = random(1, accounts.length - 1);
+      let doanGia = (sessionID, numberAddresses, i = 1) => {
+        if (i <= numberAddresses) {
+          let address = accounts[random(1, accounts.length - 1)];
+          console.log("guess price: ", sessionID, address);
+  
+          contract.guessPrice(sessionID, random(1, 100), { from: address })
+            // .then(res => console.log(res.events.onGuessPrice.returnValues));
+          return doanGia(sessionID, numberAddresses, i + 1);
+        } else return sessionID;
+      }
+  
+      return contract.startSession(sessionID, 0, { from: accounts[0] }).then(() => {
+        return doanGia(sessionID, numberAddresses);
+      })
+    });
+  */
 
 });
