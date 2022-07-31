@@ -76,14 +76,15 @@ class App extends Component {
   // };
 
   render() {
+    const { contract, owner, accounts } = this.props;
+    console.log(contract, accounts[0], owner, accounts[0] === owner)
     return (
       <Container>
         <Navbar bg="primary" variant="dark">
           <Container>
             <Navbar.Brand href="/">FUNIX PRICING CHAIN!</Navbar.Brand>
             <Nav className="me-auto">
-              <MyLink to="/pricing">Pricing</MyLink>
-              <MyLink to="/admin">Admin</MyLink>
+              <MyLink to="/admin">{this.props.accounts[0] === this.props.owner ? "Admin" : "Pricing"}</MyLink>
               <MyLink to="/users">Users</MyLink>
               <Button onClick={test}>Test</Button>
             </Nav>
@@ -92,7 +93,6 @@ class App extends Component {
         </Navbar>
 
         <Routes>
-          <Route path="/pricing" element={<Pricing />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/users" element={<Users />} />
         </Routes>
@@ -119,8 +119,9 @@ const mapStateToProps = (state, ownProps) => ({
   web3: state.web3Store.web3,
   accounts: state.web3Store.accounts,
   contract: state.PricingChain.contract,
+  owner: state.PricingChain.owner,
   sessions: state.PricingChain.sessions
-})
+});
 
 export default connect(mapStateToProps, {
   setToast, notify,

@@ -102,6 +102,7 @@ contract("PricingChain", accounts => {
       // .then(res => res.events.onStartedSession.returnValues.id)
   });
 
+  
 
   it("tạo ngẫu nhiên các ví người chơi tham gia đoán giá", async () => {
     let contract = await PricingChain.deployed();
