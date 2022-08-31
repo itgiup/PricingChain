@@ -41,6 +41,7 @@ module.exports = {
       provider: () => new HDWalletProvider(mnemonic, `https://api.avax-test.network/ext/bc/C/rpc`),
       network_id: 43113,
       confirmations: 2,
+      networkCheckTimeout: 1000000,
       timeoutBlocks: 200,
       skipDryRun: true
     },
@@ -54,6 +55,7 @@ module.exports = {
     polygonTestnet: {
       provider: () => new HDWalletProvider(mnemonic, `https://rpc-mumbai.maticvigil.com`),
       network_id: 80001,
+      networkCheckTimeout: 1000000,
       confirmations: 2,
       timeoutBlocks: 200,
       skipDryRun: true

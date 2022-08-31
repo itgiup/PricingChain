@@ -34,7 +34,7 @@ class Products extends Component {
             if (this.props.contract != null) {
                 this.props.contract.methods.getUser(accounts[0]).call({ from: accounts[0] })
                     .then(res => {
-                        if (res._email == "" || res._name == "") window.location.href = "users";
+                        if ((this.props.owner !== accounts[0]) && (res._email == "" || res._name == "")) window.location.href = "users";
                         console.log("user:", res);
                     });
 

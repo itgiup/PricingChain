@@ -3,7 +3,7 @@ import Web3 from "web3";
 import moment from "moment";
 import momentDurationFormatSetup from "moment-duration-format";
 import "moment-timer";
-import myWallets from "./testWallets";
+import Wallets from "./testWallets";
 
 import PricingChain from "./contracts/PricingChain.json";
 
@@ -11,11 +11,12 @@ momentDurationFormatSetup(moment);
 
 function random(min, max) { return Math.floor(Math.random() * (max - min) + min); }
 
-let mywalletsPK = myWallets.map(v => v.pk);
-let mywallets = myWallets.map(v => v.address);
-window.myProvider = new HDWalletProvider(mywalletsPK, "http://localhost:8545", 0, 10);
+let mywalletsPK = Wallets.map(v => v.pk);
+let mywallets = Wallets.map(v => v.address);
+let myProvider = window.myProvider = new HDWalletProvider(mywalletsPK, "http://localhost:8545", 0, 10);
+let myWeb3 = window.myWeb3 = new Web3(myProvider);
 
-const test2 = async () => {
+const test = async () => {
     // if (!contract) return alert('error.....')
     // else 
     let myproducts = [
@@ -46,28 +47,28 @@ const test2 = async () => {
         { productID: 2 },
     ];
 
-    window.myWeb3 = new Web3(window.myProvider)
-    let contract =
-        window.mycontract =
-        new window.myWeb3.eth.Contract(PricingChain.abi, PricingChain.networks[5777].address);
+    let contract = window.mycontract = new myWeb3.eth.Contract(PricingChain.abi, PricingChain.networks[5777].address);
     // Bắt đầu chạy test
     (async () => true)()
 
         // Đăng kí người chơi : name, email
         .then(() => {
             return mywallets.map((v, i) => {
-                let name = v.slice(-3),
-                    email = v.slice(-3) + "@gmail.com",
-                    account = v;
-                console.log(i, name, email, account,)
-                return contract.methods.register(name, email).send({ from: account })
-                    .then(res => console.log(res.events.onRegisted.returnValues))
+                // không phải account admin
+                if (i > 0) {
+                    let name = v.slice(-3),
+                        email = v.slice(-3) + "@gmail.com",
+                        account = v;
+                    console.log(i, name, email, account);
+                    return contract.methods.register(name, email).send({ from: account })
+                        .then(res => console.log(res.events.onRegisted.returnValues));
+                }
             })
         })
 
         // thêm sản phẩm
         .then(() => myproducts.map(p => {
-            contract.methods.addProduct(p.ipfsID, p.name).send({ from: window.myProvider.addresses[0] })
+            contract.methods.addProduct(p.ipfsID, p.name).send({ from: mywallets[0] })
                 .then(() => {
                     console.log("success add ", p.name);
                 }).catch(error => {
@@ -77,7 +78,7 @@ const test2 = async () => {
 
         // thêm session
         .then(() => Promise.all(mysesions.map(p => {
-            return contract.methods.createSession(p.productID).send({ from: window.myProvider.addresses[0] })
+            return contract.methods.createSession(p.productID).send({ from: mywallets[0] })
                 .then((res) => {
                     console.log("success createSession ", res.events.onCreatedSession.returnValues);
                     return res.events.onCreatedSession.returnValues;
@@ -90,7 +91,7 @@ const test2 = async () => {
         .then(() => {
             let sessionID = 0;// random(0, mysesions.length - 1);
             console.log(mysesions, sessionID)
-            return contract.methods.startSession(sessionID, 0).send({ from: window.myProvider.addresses[0] })
+            return contract.methods.startSession(sessionID, 0).send({ from: mywallets[0] })
                 .then(res => res.events.onStartedSession.returnValues.id)
         })
 
@@ -100,7 +101,7 @@ const test2 = async () => {
             let numberAddresses = random(1, mywallets.length - 1);
             let doanGia = (sessionID, numberAddresses, i = 1) => {
                 if (i <= numberAddresses) {
-                    let address = window.myProvider.addresses[random(1, mywallets.length - 1)];
+                    let address = mywallets[random(1, mywallets.length - 1)];
                     console.log("guess price: ", sessionID, address);
 
                     contract.methods.guessPrice(sessionID, window.myWeb3.utils.toWei(random(1, 100).toString(), 'ether'))
@@ -110,7 +111,7 @@ const test2 = async () => {
                 } else return sessionID;
             }
 
-            return contract.methods.startSession(sessionID, 0).send({ from: window.myProvider.addresses[0] }).then(() => {
+            return contract.methods.startSession(sessionID, 0).send({ from: mywallets[0] }).then(() => {
                 return doanGia(sessionID, numberAddresses);
             })
         })
@@ -125,7 +126,5 @@ const test2 = async () => {
                 })
         }).then((res) => console.log("Done", "window.location.reload()"));
 }
-
-const test = test2;
 
 export default test;
